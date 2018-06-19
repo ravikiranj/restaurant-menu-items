@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 __author__ = 'rjanardhana'
 
 import csv
@@ -14,6 +16,7 @@ logger = logging.getLogger(__name__)
 
 # Global
 DISH_CSV_FILE = "../data/Dish.csv"
+MENU_STOPWORDS_FILE = "../data/MenuStopWords.txt"
 CLEANED_DISH_LIST_FILE = "../data/CleanedDishList.csv"
 ALPHA_WITH_SPACE_REGEX = re.compile("^[a-z\s]+$")
 MIN_DISH_LEN = 3
@@ -87,7 +90,22 @@ def is_valid(dish):
     return True
 
 
-def generate_menu_items():
+def get_menu_stop_words():
+    """
+    Reads menu stop words from MENU_STOPWORDS_FILE and returns a set of it
+    """
+    if not os.path.exists(MENU_STOPWORDS_FILE):
+        logger.error("%s does not exist, cannot proceed", MENU_STOPWORDS_FILE)
+        sys.exit(1)
+
+    menu_stop_words = set()
+    with open(MENU_STOPWORDS_FILE) as fp:
+        for line in fp:
+            menu_stop_words.add(line.strip())
+    return menu_stop_words
+
+
+def generate_menu_items(menu_stop_words):
     """
     Reads dishes from DISH_CSV_FILE and writes the cleaned up dish version to CLEANED_DISH_LIST_FILE
     :return:
@@ -113,7 +131,7 @@ def generate_menu_items():
         raw_dish_list = row[1].split(",")
         for raw_dish in raw_dish_list:
             preprocessed_dish = pre_process(raw_dish)
-            if is_valid(preprocessed_dish):
+            if is_valid(preprocessed_dish) and preprocessed_dish not in menu_stop_words:
                 cleaned_dishes.add(preprocessed_dish)
         count += 1
         if count % 50000 == 0:
@@ -134,4 +152,5 @@ def generate_menu_items():
     logger.info("Finished writing to disk in %f seconds", t3-t2)
 
 if __name__ == "__main__":
-    generate_menu_items()
+    menu_stop_words = get_menu_stop_words()
+    generate_menu_items(menu_stop_words)
